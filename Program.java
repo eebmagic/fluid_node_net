@@ -118,11 +118,11 @@ public class Program extends Application {
 
 
     /* =============================================================== */
-
+    // Constant Definitions
     final static int screen_width = 1000;
     final static int screen_height = 700;
     final static int nodeSize = 5;
-    final static int nodeCount = 180;
+    final static int nodeCount = 150;
     final static int nodeConnections = 5;
 
     final static int movementIncrement = 5;
