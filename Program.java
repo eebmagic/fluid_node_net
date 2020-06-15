@@ -18,6 +18,20 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 public class Program extends Application {
+    /**
+     * reflects a point around the middle of the given width
+     * @param point the point to generate the reflected point from
+     * @param width the width of the canvas being reflected on
+     * @return the newly generate point
+     */
+    public CoordPair vert_mirror(CoordPair point, int width) {
+        return new CoordPair(width - point.get_x(), point.get_y());
+    }
+
+    public CoordPair horiz_mirror(CoordPair point, int height) {
+        return new CoordPair(point.get_x(), height - point.get_y());
+    }
+
     public static ArrayList<Node> makeMap(int totalCount, int width, int height) {
         ArrayList<Node> arr = new ArrayList<>();
         Node n;
@@ -82,6 +96,27 @@ public class Program extends Application {
     }
 
     /**
+     * Draws two nodes and the line between them. And then draws the reflection of the nodes.
+     * Allows for "more" nodes to be drawn without too much extra resources.
+     * @param gc the GraphicsContext to draw in
+     * @param a the first Node to draw
+     * @param b the second Node to draw
+     * @param nodeSize how big the nodes should be drawn to be
+     * @param width the width of the area that the nodes should be reflected around
+     */
+    public void draw_and_mirror(GraphicsContext gc, Node a, Node b, int nodeSize, int width, int height) {
+        draw_connection(gc, a, b, nodeSize);
+        Node vert_a = new Node(vert_mirror(a.get_pos(), width));
+        Node vert_b = new Node(vert_mirror(b.get_pos(), width));
+        Node horiz_a = new Node(horiz_mirror(a.get_pos(), height));
+        Node horiz_b = new Node(horiz_mirror(b.get_pos(), height));
+
+        // // Seems to onlly look good with one of these
+        draw_connection(gc, vert_a, vert_b, nodeSize);
+        // draw_connection(gc, horiz_a, horiz_b, nodeSize);
+    }
+
+    /**
      * Iterates over all nodes in the map and draws their n nearest neighbors
      * @param gc the GraphicsContext to draw in
      * @param map the the ArrayList of nodes to draw and find neighbors for
@@ -92,7 +127,8 @@ public class Program extends Application {
         for (Node n : map) {
             Node[] neighbors = find_n_closest(map, n, count);
             for (int i = 0; i < count; i++) {
-                draw_connection(gc, n, neighbors[i], nodeSize);
+                // draw_connection(gc, n, neighbors[i], nodeSize);
+                draw_and_mirror(gc, n, neighbors[i], nodeSize, screen_width, screen_height);
             }
         }
 
@@ -122,7 +158,7 @@ public class Program extends Application {
     final static int screen_width = 1000;
     final static int screen_height = 700;
     final static int nodeSize = 5;
-    final static int nodeCount = 150;
+    final static int nodeCount = 220;
     final static int nodeConnections = 5;
 
     final static int movementIncrement = 5;
