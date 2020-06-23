@@ -1,4 +1,5 @@
 import java.util.HashSet;
+import java.util.Collection;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.PriorityQueue;
@@ -31,6 +32,122 @@ public class Program extends Application {
         return arr;
     }
 
+
+    public static int[] get_bucket_inds(Node n, int width, int height, int bucketRes) {
+        int[] out = new int[2];
+
+        int w_size = (int)Math.floor((double)width / bucketRes);
+        int h_size = (int)Math.floor((double)height / bucketRes);
+
+        double x = n.get_pos().get_x();
+        double y = n.get_pos().get_y();
+
+        int x_cell = (int)Math.floor(x / w_size);
+        int y_cell = (int)Math.floor(y / h_size);
+
+        if (x_cell >= bucketRes) {
+            x_cell = bucketRes - 1;
+        }
+
+        if (y_cell >= bucketRes) {
+            y_cell = bucketRes - 1;
+        }
+
+        return new int[]{x_cell, y_cell};
+    }
+
+    /**
+     * Make a map with buckets. Two dimensional ArrayList of HashSet buckets for nodes.
+     * @param map the ArrayList of nodes to sort into buckets
+     * @param totalCount the number of nodes to put in the bucketed map
+     * @param width the max width of the screen / node area
+     * @param height the max height of the screen / node area
+     * @param bucketRes the number of rows and columns of buckets that there should be
+     */
+    public static ArrayList<ArrayList<HashSet<Node>>> makeBuckets(ArrayList<Node> map, int width, int height, int bucketRes) {
+        // Initialize output buckets as empty arrayLists
+        ArrayList<ArrayList<HashSet<Node>>> buckets = new ArrayList<>(bucketRes);
+        for (int y = 0; y < bucketRes; y++) {
+            ArrayList<HashSet<Node>> row = new ArrayList<HashSet<Node>>(bucketRes);
+            for (int x = 0; x < bucketRes; x++) {
+                row.add(new HashSet<Node>());
+            }
+            buckets.add(row);
+        }
+        
+        // Sort all nodes into buckets
+        int w_size = (int)Math.floor((double)width / bucketRes);
+        int h_size = (int)Math.floor((double)height / bucketRes);
+
+        for (Node n : map) {
+            // double x = n.get_pos().get_x();
+            // double y = n.get_pos().get_y();
+
+            // int x_cell = (int)Math.floor(x / w_size);
+            // int y_cell = (int)Math.floor(y / h_size);
+            // // int x_cell = (double)x / w_size;
+            // // int y_cell = (double)y / h_size;
+
+            // if (x_cell >= bucketRes) {
+            //     x_cell = bucketRes - 1;
+            // }
+
+            // if (y_cell >= bucketRes) {
+            //     y_cell = bucketRes - 1;
+            // }
+
+            // replaced this ^ with that \/
+            int[] cell_pos = get_bucket_inds(n, width, height, bucketRes);
+
+            // HashSet<Node> b = buckets.get(y_cell).get(x_cell);
+            HashSet<Node> b = buckets.get(cell_pos[1]).get(cell_pos[0]);
+            b.add(n);
+        }
+
+        return buckets;
+    }
+
+
+    /**
+     * method overload for making buckets without a previously made map of nodes
+     * @param totalCount the number of nodes to put in the bucketed map
+     * @param width the max width of the screen / node area
+     * @param height the max height of the screen / node area
+     * @param bucketRes the number of rows and columns of buckets that there should be
+     */
+    public static ArrayList<ArrayList<HashSet<Node>>> makeBuckets(int totalCount, int width, int height, int bucketRes) {
+        // Make straight list of nodes
+        ArrayList<Node> map = makeMap(totalCount, width, height);
+        
+        return makeBuckets(map, width, height, bucketRes);
+    }
+
+
+    public Node[] find_n_closest(ArrayList<ArrayList<HashSet<Node>>> buckets, Node n, int count, int width, int height, int bucketRes) {
+        int[] cell_pos = get_bucket_inds(n, width, height, bucketRes);
+        int y_cell = cell_pos[1];
+        int x_cell = cell_pos[0];
+
+        ArrayList<Node> wideSet = new ArrayList<>();
+        int search_size = 1;
+        do {
+            for (int y = y_cell - search_size; y < y_cell + search_size; y++) {
+                if (y >= 0 && y < bucketRes) {
+                    for (int x = x_cell - search_size; x < x_cell + search_size; x++) {
+                        if (x >= 0 && x < bucketRes) {
+                            wideSet.addAll(buckets.get(y).get(x));
+                        }
+                    }
+                }
+            }
+            search_size++;
+        } while (wideSet.size() <= count);
+
+        // System.out.printf("count: %d; in subset: %d\n", count, wideSet.size());
+
+        return find_n_closest(wideSet, n, count);
+    }
+
     /**
      * Method for finding the n number of closest neighboring nodes in a map
      * @param map the ArrayList of Nodes to check
@@ -40,16 +157,18 @@ public class Program extends Application {
      * NOTE: This might should be moved to Node.java since it's only used from one node at a time.
      *       Also might should use boxes to search through instead of checking whole set of nodes.
      */
-    public Node[] find_n_closest(ArrayList<Node> map, Node node, int count) {
-        if (count >= map.size()) {
-            String msg = new String("ERROR: cannot find n closest nodes when n matches map node count");
+    public Node[] find_n_closest(Collection<Node> set, Node sourceNode, int count) {
+        if (count >= set.size()) {
+            String msg = new String("ERROR: cannot find n closest nodes when n matches set node count");
             throw new IllegalArgumentException(msg);
         }
 
         ArrayList<Entry> distances = new ArrayList<>();
-        for (Node n : map) {
-            Entry entry = new Entry(node.distance_to(n), n);
-            distances.add(entry);
+        for (Node n : set) {
+            if (n != sourceNode) {
+                Entry entry = new Entry(sourceNode.distance_to(n), n);
+                distances.add(entry);
+            }
         }
         Collections.sort(distances);
 
@@ -102,6 +221,20 @@ public class Program extends Application {
         }
     }
 
+    public void draw_all(GraphicsContext gc, ArrayList<Node> map, ArrayList<ArrayList<HashSet<Node>>> buckets, int count, int nodeSize, int width, int height, int bucketRes) {
+        for (Node n : map) {
+            Node[] neighbors = find_n_closest(buckets, n, count, width, height, bucketRes);
+            for (int i = 0; i < count; i++) {
+                draw_connection(gc, n, neighbors[i], nodeSize);
+            }
+        }
+
+        // Draw all nodes without drawing connections
+        for (Node n : map) {
+            gc.fillOval(n.get_pos().get_x(), n.get_pos().get_y(), nodeSize, nodeSize);
+        }
+    }
+
     /**
      * Moves all nodes in a list by their set amount (Defined seperately in each Node object)
      *  Node objects have an x and y velocity from -0.5 to 0.5
@@ -119,10 +252,11 @@ public class Program extends Application {
 
     /* =============================================================== */
     // Constant Definitions
-    final static int screen_width = 1000;
-    final static int screen_height = 700;
+    final static int screen_width = 1300;
+    final static int screen_height = 1000;
     final static int nodeSize = 5;
-    final static int nodeCount = 150;
+    final static int nodeCount = 250;
+    final static int cell_res = 5;
     final static int nodeConnections = 5;
 
     final static int movementIncrement = 5;
@@ -132,6 +266,7 @@ public class Program extends Application {
     public void start(Stage primaryStage) {
         // INITIALIZE NODE MAP //
         ArrayList<Node> map = makeMap(nodeCount, screen_width, screen_height);
+        // ArrayList<ArrayList<HashSet<Node>>> buckets = makeBuckets(map, screen_width, screen_height, cell_res);
 
         // SETUP SCREEN //
         Group root = new Group();
@@ -160,10 +295,18 @@ public class Program extends Application {
                 // CLEAR SCREEN //
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
+
+                // buckets = makeBuckets(map, screen_width, screen_height, cell_res);
+                ArrayList<ArrayList<HashSet<Node>>> buckets = makeBuckets(map, screen_width, screen_height, cell_res);
+
                 // DRAW AND MOVE NODES //
-                draw_all(gc, map, nodeConnections, nodeSize);
+                // draw_all(gc, map, nodeConnections, nodeSize);
+                draw_all(gc, map, buckets, nodeConnections, nodeSize, screen_width, screen_height, cell_res);
                 move_all(map, movementIncrement, screen_width, screen_height);
                 
+                // resort buckets
+                
+
                 // SET FRAMERATE //
                 try {
                     Thread.sleep(frameTick);
