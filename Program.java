@@ -33,6 +33,14 @@ public class Program extends Application {
     }
 
 
+    /**
+     * Gets the proper cell coordinate for the given node
+     * @param n the node to find the cell for
+     * @param width the width of the area the node is in
+     * @param height the height of the area the node is in
+     * @param bucketRes the number of cols/rows that are in the bucket array
+     * @return an int array of size 2 with the [x, y] for the cell position in the bucket array
+     */
     public static int[] get_bucket_inds(Node n, int width, int height, int bucketRes) {
         int[] out = new int[2];
 
@@ -63,6 +71,7 @@ public class Program extends Application {
      * @param width the max width of the screen / node area
      * @param height the max height of the screen / node area
      * @param bucketRes the number of rows and columns of buckets that there should be
+     * @return the matrix of Node sets for each range of positions in the cells
      */
     public static ArrayList<ArrayList<HashSet<Node>>> makeBuckets(ArrayList<Node> map, int width, int height, int bucketRes) {
         // Initialize output buckets as empty arrayLists
@@ -80,23 +89,6 @@ public class Program extends Application {
         int h_size = (int)Math.floor((double)height / bucketRes);
 
         for (Node n : map) {
-            // double x = n.get_pos().get_x();
-            // double y = n.get_pos().get_y();
-
-            // int x_cell = (int)Math.floor(x / w_size);
-            // int y_cell = (int)Math.floor(y / h_size);
-            // // int x_cell = (double)x / w_size;
-            // // int y_cell = (double)y / h_size;
-
-            // if (x_cell >= bucketRes) {
-            //     x_cell = bucketRes - 1;
-            // }
-
-            // if (y_cell >= bucketRes) {
-            //     y_cell = bucketRes - 1;
-            // }
-
-            // replaced this ^ with that \/
             int[] cell_pos = get_bucket_inds(n, width, height, bucketRes);
 
             // HashSet<Node> b = buckets.get(y_cell).get(x_cell);
@@ -114,6 +106,7 @@ public class Program extends Application {
      * @param width the max width of the screen / node area
      * @param height the max height of the screen / node area
      * @param bucketRes the number of rows and columns of buckets that there should be
+     * @return the matrix of Node sets for each range of positions in the cells
      */
     public static ArrayList<ArrayList<HashSet<Node>>> makeBuckets(int totalCount, int width, int height, int bucketRes) {
         // Make straight list of nodes
@@ -123,6 +116,15 @@ public class Program extends Application {
     }
 
 
+    /**
+     * finds the n number of closest nodes to a given node by using the sorted cell buckets
+     * @param buckets the matrix of Node sets in each position range
+     * @param n the node to search from
+     * @param count the n number of nodes to find nearest
+     * @param width the width of the node area
+     * @param height the height of the node area
+     * @param bucketRes the number of cols/rows of bucket cells
+     */
     public Node[] find_n_closest(ArrayList<ArrayList<HashSet<Node>>> buckets, Node n, int count, int width, int height, int bucketRes) {
         int[] cell_pos = get_bucket_inds(n, width, height, bucketRes);
         int y_cell = cell_pos[1];
@@ -255,9 +257,9 @@ public class Program extends Application {
     final static int screen_width = 1300;
     final static int screen_height = 1000;
     final static int nodeSize = 5;
-    final static int nodeCount = 250;
+    final static int nodeCount = 300;
+    final static int nodeConnections = 10;
     final static int cell_res = 5;
-    final static int nodeConnections = 5;
 
     final static int movementIncrement = 5;
     final static int frameTick = 1;
@@ -296,15 +298,13 @@ public class Program extends Application {
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
 
-                // buckets = makeBuckets(map, screen_width, screen_height, cell_res);
+                // sort into buckets (perhaps changet this to once every few frames)
                 ArrayList<ArrayList<HashSet<Node>>> buckets = makeBuckets(map, screen_width, screen_height, cell_res);
 
                 // DRAW AND MOVE NODES //
                 // draw_all(gc, map, nodeConnections, nodeSize);
                 draw_all(gc, map, buckets, nodeConnections, nodeSize, screen_width, screen_height, cell_res);
                 move_all(map, movementIncrement, screen_width, screen_height);
-                
-                // resort buckets
                 
 
                 // SET FRAMERATE //
